@@ -18,7 +18,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-builder.defineStreamHandler(async (args) => {
+builder.defineStreamHandler(async (args: { type: string; id: string }) => {
     const { type, id } = args;
     const parts = id.split(":");
     const cleanId = parts[0];
