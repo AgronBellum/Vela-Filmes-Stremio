@@ -21,7 +21,7 @@ export async function sniffM3U8(embedUrl: string): Promise<string | null> {
                 "--single-process"
             ],
             executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
+            headless: true, // Forçado como true para evitar erro de tipo no pacote
         });
 
         const page = await browser.newPage();
