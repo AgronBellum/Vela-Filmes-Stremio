@@ -30,23 +30,28 @@ function levenshtein(a: string, b: string): number {
 export async function getMetaDetails(type: string, imdbId: string): Promise<MetaInfo | null> {
     try {
         const url = `https://cinemeta-stremio.strem.fun/meta/${type}/${imdbId}.json`;
+        console.log(`[Cinemeta] Buscando metadados para ${type} ID: ${imdbId}`);
         const response = await axios.get(url);
         const meta = response.data && response.data.meta;
         if (meta) {
+            console.log(`[Cinemeta] Encontrado: "${meta.name}" (${meta.year})`);
             return {
                 title: meta.name,
                 year: meta.year ? String(meta.year).substring(0, 4) : ""
             };
         }
     } catch (error: any) {
-        console.error("Erro ao buscar metadados no Cinemeta:", error.message);
+        console.error("[Cinemeta] Erro ao buscar metadados:", error.message);
     }
     return null;
 }
 
 export async function findMegaFlixItem(targetTitle: string, targetYear: string, isSeries: boolean): Promise<SearchMatch | null> {
     const candidates = await searchMegaFlix(targetTitle);
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) {
+        console.log(`[MegaFlix] Nenhum candidato encontrado para o título: "${targetTitle}"`);
+        return null;
+    }
 
     const targetKey = normalizeTitle(targetTitle);
     let bestMatch: { match: SearchMatch; score: number; distance: number } | null = null;
@@ -72,6 +77,9 @@ export async function findMegaFlixItem(targetTitle: string, targetYear: string, 
         }
     }
 
+    if (bestMatch) {
+        console.log(`[MegaFlix] Melhor correspondência: "${bestMatch.match.title}" (ID: ${bestMatch.match.id}, Ano: ${bestMatch.match.year})`);
+    }
     return bestMatch?.match || null;
 }
 
@@ -84,6 +92,7 @@ async function searchMegaFlix(title: string): Promise<SearchMatch[]> {
 
     for (const url of urls) {
         try {
+            console.log(`[MegaFlix] Pesquisando URL: ${url}`);
             const res = await axios.get(url, { headers: { 'Referer': `${MAIN_URL}/`, 'User-Agent': 'Mozilla/5.0' } });
             const html = res.data;
             if (!html) continue;
@@ -106,8 +115,13 @@ async function searchMegaFlix(title: string): Promise<SearchMatch[]> {
                 results.push({ id, title: titleText, year, type });
             });
 
-            if (results.length > 0) return results;
-        } catch {}
+            if (results.length > 0) {
+                console.log(`[MegaFlix] Encontrados ${results.length} resultados na busca.`);
+                return results;
+            }
+        } catch (err: any) {
+            console.error(`[MegaFlix] Erro na busca ${url}:`, err.message);
+        }
     }
     return [];
 }
@@ -118,11 +132,13 @@ export async function getMegaFlixEmbeds(imdbId: string, season: number, episode:
 
     const item = await findMegaFlixItem(metaInfo.title, metaInfo.year, isSeries);
     const itemId = item ? item.id : imdbId;
+    console.log(`[MegaFlix] Usando ID interno/fallback: ${itemId} para ${isSeries ? 'Série' : 'Filme'}`);
 
     let embedUrls: Array<{ url: string; label: string }> = [];
     try {
         if (isSeries) {
             const epUrl = `${MAIN_URL}/desktop/1.2.2/?page=getEpisodes&season=${season}&idItem=${itemId}`;
+            console.log(`[MegaFlix] Buscando episódios via POST: ${epUrl}`);
             const res = await axios.post(epUrl, "userEpisodes=[]", {
                 headers: {
                     'User-Agent': 'Mozilla/5.0',
@@ -153,6 +169,7 @@ export async function getMegaFlixEmbeds(imdbId: string, season: number, episode:
             }
         } else {
             const viewUrl = `${MAIN_URL}/desktop/1.2.2/?page=viewItem&id=${itemId}`;
+            console.log(`[MegaFlix] Buscando filme via GET: ${viewUrl}`);
             const res = await axios.get(viewUrl, { headers: { 'Referer': `${MAIN_URL}/` } });
             const optionsMatch = res.data.match(/openOptions\s*\(\s*\{([\s\S]*?)\}\s*\)/);
             const brGroup = optionsMatch?.[1]?.match(/br:\s*['"]([^'"]*)['"]/)?.[1] || '';
@@ -167,8 +184,9 @@ export async function getMegaFlixEmbeds(imdbId: string, season: number, episode:
             });
         }
     } catch (e: any) {
-        console.error("Erro extração servidores MegaFlix:", e.message);
+        console.error("[MegaFlix] Erro extração servidores:", e.message);
     }
 
+    console.log(`[MegaFlix] Total de links brutos de embed encontrados: ${embedUrls.length}`);
     return embedUrls;
 }
