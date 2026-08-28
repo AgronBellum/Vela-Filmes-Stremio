@@ -140,7 +140,7 @@ export async function getMegaFlixEmbeds(imdbId: string, season: number, episode:
                 const epNumMatch = block.match(/episode_num\s*:\s*["']?(\d+)["']?/);
                 if (epNumMatch && parseInt(epNumMatch[1], 10) === Number(episode)) {
                     const brMatch = block.match(/br\s*:\s*["']([^"']+)["']/)?.[1] || '';
-                    brMatch.split(',').forEach(u => {
+                    brMatch.split(',').forEach((u: string) => {
                         let finalUrl = u.trim();
                         if (finalUrl) {
                             if (finalUrl.includes('cnvs') && !finalUrl.startsWith('http')) {
@@ -156,7 +156,7 @@ export async function getMegaFlixEmbeds(imdbId: string, season: number, episode:
             const res = await axios.get(viewUrl, { headers: { 'Referer': `${MAIN_URL}/` } });
             const optionsMatch = res.data.match(/openOptions\s*\(\s*\{([\s\S]*?)\}\s*\)/);
             const brGroup = optionsMatch?.[1]?.match(/br:\s*['"]([^'"]*)['"]/)?.[1] || '';
-            brGroup.split(',').forEach(u => {
+            brGroup.split(',').forEach((u: string) => {
                 let finalUrl = u.trim();
                 if (finalUrl) {
                     if (finalUrl.includes('cnvs') && !finalUrl.startsWith('http')) {
