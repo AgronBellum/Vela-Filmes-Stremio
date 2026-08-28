@@ -28,10 +28,12 @@ builder.defineStreamHandler(async (args: { type: string; id: string }) => {
 
     const streams: StreamResult[] = [];
 
-    // 1. Resolver servidores via busca por nome e Sniffer
+    // Foco total nos extratores e no Sniffer
     try {
         const embeds = await getMegaFlixEmbeds(cleanId, season, episode, isSeries);
-        for (const item of embeds.slice(0, 2)) {
+        
+        // Testa os primeiros embeds encontrados pelos extratores
+        for (const item of embeds.slice(0, 3)) {
             const m3u8Url = await Promise.race([
                 sniffM3U8(item.url),
                 new Promise<null>(resolve => setTimeout(() => resolve(null), STREMIO_TIMEOUT))
@@ -41,7 +43,7 @@ builder.defineStreamHandler(async (args: { type: string; id: string }) => {
                 streams.push({
                     url: m3u8Url,
                     title: `${item.label} 🎯`,
-                    description: "✅ Encontrado via Vela Filmes + Sniffer",
+                    description: "✅ Extraído via Sniffer",
                     behaviorHints: {
                         proxyHeaders: {
                             request: {
@@ -54,19 +56,8 @@ builder.defineStreamHandler(async (args: { type: string; id: string }) => {
             }
         }
     } catch (err: any) {
-        console.error("Erro handler Vela Filmes:", err.message);
+        console.error("Erro nos extratores Vela Filmes:", err.message);
     }
-
-    // 2. Fallback externo seguro
-    const fallbackEmbed = isSeries 
-        ? `https://fembed.sx/e/${cleanId}-dub/${season}-${episode}`
-        : `https://fembed.sx/e/${cleanId}-dub`;
-
-    streams.push({
-        externalUrl: fallbackEmbed,
-        title: "Abrir no Navegador/App 📱",
-        description: "🔗 Caso o player direto falhe"
-    });
 
     return { streams };
 });
