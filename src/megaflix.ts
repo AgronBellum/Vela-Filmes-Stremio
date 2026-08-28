@@ -29,12 +29,15 @@ function levenshtein(a: string, b: string): number {
 
 export async function getMetaDetails(type: string, imdbId: string): Promise<MetaInfo | null> {
     try {
-        const url = `https://cinemeta-stremio.strem.fun/meta/${type}/${imdbId}.json`;
+        // Usando o endpoint oficial v3 do Cinemeta
+        const url = `https://v3-cinemeta.strem.io/meta/${type}/${imdbId}.json`;
         console.log(`[Cinemeta] Buscando metadados para ${type} ID: ${imdbId}`);
-        const response = await axios.get(url);
+        
+        const response = await axios.get(url, { timeout: 5000 });
         const meta = response.data && response.data.meta;
+        
         if (meta) {
-            console.log(`[Cinemeta] Encontrado: "${meta.name}" (${meta.year})`);
+            console.log(`[Cinemeta] Encontrado com sucesso: "${meta.name}" (${meta.year})`);
             return {
                 title: meta.name,
                 year: meta.year ? String(meta.year).substring(0, 4) : ""
@@ -43,7 +46,12 @@ export async function getMetaDetails(type: string, imdbId: string): Promise<Meta
     } catch (error: any) {
         console.error("[Cinemeta] Erro ao buscar metadados:", error.message);
     }
-    return null;
+    
+    // Fallback de segurança: se a API falhar, usa o próprio ID limpo para a busca
+    return {
+        title: imdbId,
+        year: ""
+    };
 }
 
 export async function findMegaFlixItem(targetTitle: string, targetYear: string, isSeries: boolean): Promise<SearchMatch | null> {
