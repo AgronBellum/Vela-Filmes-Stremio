@@ -10,6 +10,9 @@ export async function sniffM3U8(embedUrl: string): Promise<string | null> {
 
     let browser = null;
     try {
+        // Aguarda um instante para garantir que o binário do chromium acalmara no disco
+        const executablePath = await chromium.executablePath();
+        
         browser = await puppeteer.launch({
             args: [
                 ...chromium.args,
@@ -20,8 +23,8 @@ export async function sniffM3U8(embedUrl: string): Promise<string | null> {
                 "--no-zygote",
                 "--single-process"
             ],
-            executablePath: await chromium.executablePath(),
-            headless: true, // Forçado como true para evitar erro de tipo no pacote
+            executablePath: executablePath,
+            headless: true,
         });
 
         const page = await browser.newPage();
